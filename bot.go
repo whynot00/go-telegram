@@ -43,6 +43,8 @@ type Bot struct {
 	workers            int
 	notAsyncHandlers   bool
 
+	fsm *fsm
+
 	defaultHandlerFunc HandlerFunc
 
 	errorsHandler ErrorsHandler
@@ -81,6 +83,9 @@ func New(token string, options ...Option) (*Bot, error) {
 		checkInitTimeout:   defaultCheckInitTimeout,
 		workers:            defaultWorkers,
 
+		fsm: &fsm{
+			current: sync.Map{},
+		},
 		updates: make(chan *models.Update, defaultUpdatesChanCap),
 	}
 

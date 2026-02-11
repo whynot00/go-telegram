@@ -35,6 +35,8 @@ type handler struct {
 	matchType   MatchType
 	handler     HandlerFunc
 
+	state State
+
 	pattern   string
 	re        *regexp.Regexp
 	matchFunc MatchFunc
@@ -155,11 +157,35 @@ func (b *Bot) RegisterHandler(handlerType HandlerType, pattern string, matchType
 		matchType:   matchType,
 		pattern:     pattern,
 		handler:     applyMiddlewares(f, m...),
+
+		state: StateDefault,
 	}
 
 	b.handlers = append(b.handlers, h)
 
 	return id
+}
+
+func (b *Bot) RegisterHandlerFSM(state State, handlerType HandlerType, pattern string, matchType MatchType, f HandlerFunc, m ...Middleware) string {
+	b.handlersMx.Lock()
+	defer b.handlersMx.Unlock()
+
+	id := RandomString(16)
+
+	h := handler{
+		id:          id,
+		handlerType: handlerType,
+		matchType:   matchType,
+		pattern:     pattern,
+		handler:     applyMiddlewares(f, m...),
+
+		state: state,
+	}
+
+	b.handlers = append(b.handlers, h)
+
+	return id
+
 }
 
 func (b *Bot) UnregisterHandler(id string) {

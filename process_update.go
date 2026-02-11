@@ -35,10 +35,18 @@ func (b *Bot) findHandler(upd *models.Update) HandlerFunc {
 	b.handlersMx.RLock()
 	defer b.handlersMx.RUnlock()
 
+	currentState := b.fsm.currentState(upd.Message.From.ID)
+
 	for _, h := range b.handlers {
-		if h.match(upd) {
+
+		if h.match(upd) && (currentState == h.state || h.state == StateAny) {
 			return h.handler
 		}
+
+	}
+
+	if currentState != StateDefault {
+		return func(ctx context.Context, bot *Bot, update *models.Update) {}
 	}
 
 	return b.defaultHandlerFunc
