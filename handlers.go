@@ -119,6 +119,28 @@ func (b *Bot) RegisterHandlerMatchFunc(matchFunc MatchFunc, f HandlerFunc, m ...
 		matchType: matchTypeFunc,
 		matchFunc: matchFunc,
 		handler:   applyMiddlewares(f, m...),
+
+		state: StateDefault,
+	}
+
+	b.handlers = append(b.handlers, h)
+
+	return id
+}
+
+func (b *Bot) RegisterHandlerMatchFuncFSM(state State, matchFunc MatchFunc, f HandlerFunc, m ...Middleware) string {
+	b.handlersMx.Lock()
+	defer b.handlersMx.Unlock()
+
+	id := RandomString(16)
+
+	h := handler{
+		id:        id,
+		matchType: matchTypeFunc,
+		matchFunc: matchFunc,
+		handler:   applyMiddlewares(f, m...),
+
+		state: state,
 	}
 
 	b.handlers = append(b.handlers, h)
@@ -138,6 +160,29 @@ func (b *Bot) RegisterHandlerRegexp(handlerType HandlerType, re *regexp.Regexp, 
 		matchType:   matchTypeRegexp,
 		re:          re,
 		handler:     applyMiddlewares(f, m...),
+
+		state: StateDefault,
+	}
+
+	b.handlers = append(b.handlers, h)
+
+	return id
+}
+
+func (b *Bot) RegisterHandlerRegexpFSM(state State, handlerType HandlerType, re *regexp.Regexp, f HandlerFunc, m ...Middleware) string {
+	b.handlersMx.Lock()
+	defer b.handlersMx.Unlock()
+
+	id := RandomString(16)
+
+	h := handler{
+		id:          id,
+		handlerType: handlerType,
+		matchType:   matchTypeRegexp,
+		re:          re,
+		handler:     applyMiddlewares(f, m...),
+
+		state: state,
 	}
 
 	b.handlers = append(b.handlers, h)

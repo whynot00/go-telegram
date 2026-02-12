@@ -91,6 +91,7 @@ func TestProcessUpdate_WithMatchTypeFunc(t *testing.T) {
 	bot := &Bot{
 		defaultHandlerFunc: h1,
 		notAsyncHandlers:   true,
+		fsm:                newFsm(),
 	}
 
 	bot.RegisterHandlerMatchFunc(m, h2)
