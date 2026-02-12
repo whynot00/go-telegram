@@ -9,12 +9,13 @@ import (
 )
 
 type fsm struct {
-	current sync.Map
+	current map[int64]State
+	mu      *sync.RWMutex
 }
 
 func newFsm() *fsm {
 	return &fsm{
-		current: sync.Map{},
+		current: make(map[int64]State),
 	}
 }
 
@@ -27,31 +28,42 @@ const (
 
 func (f *fsm) currentState(upd *models.Update) State {
 
-	userID, ok := ExtractUserIDFromUpdate(upd)
+	userID, ok := actorID(upd)
 	if !ok {
 		return StateDefault
 	}
 
-	v, ok := f.current.Load(userID)
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+
+	state, ok := f.current[userID]
 	if !ok {
 		return StateDefault
 	}
 
-	state := v.(State)
 	return state
 }
 
-func (b *Bot) StateTransition(state State, userID int64) {
+func (b *Bot) StateTransition(upd *models.Update, state State) {
+	b.fsm.mu.Lock()
+	defer b.fsm.mu.Unlock()
 
-	b.fsm.current.Store(userID, state)
+	if id, ok := actorID(upd); ok {
+		b.fsm.current[id] = state
+	}
+
 }
 
-func (b *Bot) StateFinish(userID int64) {
+func (b *Bot) StateFinish(upd *models.Update) {
+	b.fsm.mu.Lock()
+	defer b.fsm.mu.Unlock()
 
-	b.fsm.current.Delete(userID)
+	if id, ok := actorID(upd); ok {
+		delete(b.fsm.current, id)
+	}
 }
 
-func ExtractUserIDFromUpdate(upd *models.Update) (int64, bool) {
+func actorID(upd *models.Update) (int64, bool) {
 	if upd == nil {
 		return -1, false
 	}

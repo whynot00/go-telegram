@@ -108,24 +108,29 @@ func (h handler) match(update *models.Update) bool {
 	return false
 }
 
-func (b *Bot) RegisterHandlerMatchFunc(matchFunc MatchFunc, f HandlerFunc, m ...Middleware) string {
+func (b *Bot) addHandler(h handler) string {
+
+	if h.id == "" {
+		h.id = RandomString(16)
+	}
+
 	b.handlersMx.Lock()
 	defer b.handlersMx.Unlock()
 
-	id := RandomString(16)
-
-	h := handler{
-		id:        id,
-		matchType: matchTypeFunc,
-		matchFunc: matchFunc,
-		handler:   applyMiddlewares(f, m...),
-
-		state: StateDefault,
-	}
-
 	b.handlers = append(b.handlers, h)
+	return h.id
+}
 
-	return id
+func (b *Bot) RegisterHandlerMatchFunc(matchFunc MatchFunc, f HandlerFunc, m ...Middleware) string {
+	return b.RegisterHandlerMatchFuncFSM(StateDefault, matchFunc, f, m...)
+}
+
+func (b *Bot) RegisterHandlerRegexp(handlerType HandlerType, re *regexp.Regexp, f HandlerFunc, m ...Middleware) string {
+	return b.RegisterHandlerRegexpFSM(StateDefault, handlerType, re, f, m...)
+}
+
+func (b *Bot) RegisterHandler(handlerType HandlerType, pattern string, matchType MatchType, f HandlerFunc, m ...Middleware) string {
+	return b.RegisterHandlerFSM(StateDefault, handlerType, pattern, matchType, f, m...)
 }
 
 func (b *Bot) RegisterHandlerMatchFuncFSM(state State, matchFunc MatchFunc, f HandlerFunc, m ...Middleware) string {
@@ -148,27 +153,6 @@ func (b *Bot) RegisterHandlerMatchFuncFSM(state State, matchFunc MatchFunc, f Ha
 	return id
 }
 
-func (b *Bot) RegisterHandlerRegexp(handlerType HandlerType, re *regexp.Regexp, f HandlerFunc, m ...Middleware) string {
-	b.handlersMx.Lock()
-	defer b.handlersMx.Unlock()
-
-	id := RandomString(16)
-
-	h := handler{
-		id:          id,
-		handlerType: handlerType,
-		matchType:   matchTypeRegexp,
-		re:          re,
-		handler:     applyMiddlewares(f, m...),
-
-		state: StateDefault,
-	}
-
-	b.handlers = append(b.handlers, h)
-
-	return id
-}
-
 func (b *Bot) RegisterHandlerRegexpFSM(state State, handlerType HandlerType, re *regexp.Regexp, f HandlerFunc, m ...Middleware) string {
 	b.handlersMx.Lock()
 	defer b.handlersMx.Unlock()
@@ -183,27 +167,6 @@ func (b *Bot) RegisterHandlerRegexpFSM(state State, handlerType HandlerType, re 
 		handler:     applyMiddlewares(f, m...),
 
 		state: state,
-	}
-
-	b.handlers = append(b.handlers, h)
-
-	return id
-}
-
-func (b *Bot) RegisterHandler(handlerType HandlerType, pattern string, matchType MatchType, f HandlerFunc, m ...Middleware) string {
-	b.handlersMx.Lock()
-	defer b.handlersMx.Unlock()
-
-	id := RandomString(16)
-
-	h := handler{
-		id:          id,
-		handlerType: handlerType,
-		matchType:   matchType,
-		pattern:     pattern,
-		handler:     applyMiddlewares(f, m...),
-
-		state: StateDefault,
 	}
 
 	b.handlers = append(b.handlers, h)
